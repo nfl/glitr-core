@@ -1,0 +1,146 @@
+group = 'com.nfl.glitr'
+version = '0.0.1'
+description = "A library that lets you use Plain Old Java Objects to describe your GraphQL schema."
+
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.1'
+    }
+}
+
+apply plugin: 'idea'
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'maven-publish'
+
+//noinspection GroovyUnusedAssignment
+sourceCompatibility = 1.8
+//noinspection GroovyUnusedAssignment
+targetCompatibility = 1.8
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.13'
+}
+
+
+publishing {
+    publications {
+        projectPublish(MavenPublication) {
+            from components.java
+            groupId project.group
+            artifactId project.name
+            version version
+
+            artifact sourcesJar {
+                classifier "sources"
+            }
+            artifact javadocJar {
+                classifier "javadoc"
+            }
+
+            pom.withXml {
+                asNode().children().last() + {
+                    resolveStrategy = Closure.DELEGATE_FIRST
+                    name project.name
+                    description project.description
+                    url PROJECT_GITHUB_REPO_URL
+                    scm {
+                        url PROJECT_GITHUB_REPO_URL
+                        connection PROJECT_GITHUB_REPO_URL
+                        developerConnection PROJECT_GITHUB_REPO_URL
+                    }
+                    licenses {
+                        license {
+                            name 'MIT'
+                            url PROJECT_LICENSE_URL
+                            distribution 'repo'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id 'vaant'
+                            name 'Arash Shokoufandeh'
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+bintray {
+    user = System.getenv('BINTRAY_USER') ?: project.findProperty('bintray.user')
+    key = System.getenv('BINTRAY_KEY') ?: project.findProperty('bintray.key')
+    publications = ['projectPublish']
+    publish = true
+    pkg {
+        repo = 'maven'
+        name = project.name
+        userOrg = 'nfl'
+        licenses = ['MIT']
+        vcsUrl = PROJECT_GITHUB_REPO_URL
+        version {
+            name = project.version
+            desc = project.description
+            released  = new Date()
+            vcsTag = 'v'+ project.version
+            gpg {
+                sign = true
+            }
+            mavenCentralSync {
+                sync = project.property('maven.central.sync')
+                user = System.getenv('SONATYPE_USERNAME') ?: project.findProperty('sonatype.username')
+                password = System.getenv('SONATYPE_PASSWORD') ?: project.findProperty('sonatype.password')
+            }
+        }
+    }
+}
+
+// all publish tasks depend on the build task
+tasks.withType(PublishToMavenRepository) {
+    dependsOn build
+}
+
+task sourcesJar(type: Jar) {
+    dependsOn classes
+    classifier 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+jar {
+    from "LICENSE"
+    manifest {
+        attributes(
+                "Specification-Title": project.name,
+                "Specification-Version": project.version,
+                "Implementation-Version": project.version,
+        )
+    }
+}
