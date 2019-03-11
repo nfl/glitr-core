@@ -1,5 +1,5 @@
 group = 'com.nfl.glitr'
-version = '0.0.1'
+version = PROJECT_VERSION
 description = "A library that lets you use Plain Old Java Objects to describe your GraphQL schema."
 
 buildscript {
